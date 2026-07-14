@@ -198,9 +198,11 @@ const IndexPortal = () => {
 const styles = {
   viewWindow: { width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: '#f1f5f9' },
   scrollWrapper: { display: 'flex', width: '200vw', height: '100%', transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)' },
-  // CRITICAL FIX: Explicitly forcing 50vw min/max width guarantees the flex child tracks do not compress down onto a single layout viewport
-  panelPageLight: { width: '50vw', minWidth: '50vw', maxWidth: '50vw', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' },
-  panelPageDark: { width: '50vw', minWidth: '50vw', maxWidth: '50vw', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', backgroundColor: '#111827' },
+  
+  // FIX DETAILS: Clamped layout configurations prevent compression side-by-side
+  panelPageLight: { width: '50vw', minWidth: '50vw', maxWidth: '50vw', flexShrink: 0, height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' },
+  panelPageDark: { width: '50vw', minWidth: '50vw', maxWidth: '50vw', flexShrink: 0, height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', backgroundColor: '#111827' },
+  
   card: { padding: '40px 30px', borderRadius: '16px', backgroundColor: '#fff', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', width: '100%', maxWidth: '420px' },
   header: { textAlign: 'center', marginBottom: '24px' },
   form: { display: 'flex', flexDirection: 'column', gap: '18px' },
