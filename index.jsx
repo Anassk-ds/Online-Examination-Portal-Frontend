@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const IndexPortal = ({ navigateTo }) => {
+const IndexPortal = () => {
+  const navigate = useNavigate();
   // Student States
   const [studentEmail, setStudentEmail] = useState('');
   const [studentPassword, setStudentPassword] = useState('');
@@ -48,9 +50,9 @@ const IndexPortal = ({ navigateTo }) => {
     localStorage.setItem('userRole', type);
 
     if (type === 'admin') {
-      navigateTo('/admin');
+      navigate('/admin');
     } else {
-      navigateTo('/dashboard');
+      navigate('/dashboard');
     }
   };
 
