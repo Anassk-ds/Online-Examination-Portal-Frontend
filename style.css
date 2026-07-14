@@ -117,3 +117,6 @@ header {
         padding: 18px;
     }
 }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
