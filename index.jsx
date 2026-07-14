@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+// Import your animation asset from the same directory folder
+import walkingMan from './man-walking.gif'; 
 
 const IndexPortal = ({ navigateTo }) => {
   // Student States
@@ -56,6 +58,23 @@ const IndexPortal = ({ navigateTo }) => {
 
   return (
     <div style={styles.viewWindow}>
+      {/* Dynamic CSS Keyframes injected safely for GitHub deployment */}
+      <style>{`
+        @keyframes walkAcrossScreen {
+          0% { transform: translateX(-160px); }
+          100% { transform: translateX(100vw); }
+        }
+      `}</style>
+
+      {/* Animated Office Man Layer */}
+      <div style={styles.animationWrapper}>
+        <img 
+          src={walkingMan} 
+          alt="Animated man walking with office bag" 
+          style={styles.animationImg} 
+        />
+      </div>
+
       <div style={styles.scrollWrapper} ref={scrollContainerRef}>
         
         {/* ================= PANEL 1: STUDENT PORTAL ================= */}
@@ -192,23 +211,25 @@ const styles = {
   scrollWrapper: { display: 'flex', width: '100%', height: '100%', overflowX: 'hidden', scrollSnapType: 'x mandatory' },
   panelPageLight: { minWidth: '100vw', height: '100vh', backgroundColor: '#f3f4f6', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
   panelPageDark: { minWidth: '100vw', height: '100vh', backgroundColor: '#111827', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
-  card: { backgroundColor: '#ffffff', padding: '35px', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', width: '100%', maxWidth: '360px' },
-  header: { textAlign: 'center', marginBottom: '25px' },
-  form: { display: 'flex', flexDirection: 'column', gap: '16px' },
-  inputGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
-  labelLight: { fontSize: '12px', fontWeight: 'bold', color: '#4b5563' },
-  labelDark: { fontSize: '12px', fontWeight: 'bold', color: '#9ca3af' },
-  lightInput: { padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#fff', color: '#1f2937' },
-  darkInput: { padding: '12px', border: '1px solid #4b5563', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#374151', color: '#fff' },
-  studentBtn: { backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' },
-  adminBtn: { backgroundColor: '#4f46e5', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' },
-  toggleRow: { textAlign: 'center', marginTop: '5px' },
-  linkLight: { fontSize: '13px', color: '#2563eb', cursor: 'pointer', textDecoration: 'underline' },
-  linkDark: { fontSize: '13px', color: '#60a5fa', cursor: 'pointer', textDecoration: 'underline' },
-  switchTerminalBox: { borderTop: '1px solid #e5e7eb', marginTop: '25px', paddingTop: '20px', textAlign: 'center' },
-  slideNextBtn: { background: 'none', border: '1px solid #cbd5e1', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#4b5563', fontSize: '13px' },
-  slidePrevBtn: { background: 'none', border: '1px solid #4b5563', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#9ca3af', fontSize: '13px' },
-  errorAlert: { backgroundColor: '#fef2f2', border: '1px solid #fee2e2', color: '#dc2626', padding: '12px', borderRadius: '8px', fontSize: '13px', marginBottom: '15px', textAlign: 'center' }
-};
+  
+  // Animation Container CSS Style Rules
+  animationWrapper: {
+    position: 'absolute',
+    bottom: '20px', // Places him right at the lower section of your screen
+    left: '0',
+    zIndex: 10, // Places him in front of the background, but behind the modal cards
+    pointerEvents: 'none', // Prevents the image from blocking clicks on buttons
+    animation: 'walkAcrossScreen 14s linear infinite', // Continually loops across the viewport
+  },
+  animationImg: {
+    width: '140px',
+    height: 'auto',
+  },
 
-export default IndexPortal;
+  card: { backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', width: '380px' },
+  header: { textAlign: 'center', marginBottom: '25px' },
+  form: { display: 'flex', flexDirection: 'column', gap: '15px' },
+  inputGroup: { display: 'flex', flexDirection: 'column', gap: '5px' },
+  labelLight: { fontSize: '14px', fontWeight: '500', color: '#374151' },
+  labelDark: { fontSize: '14px', fontWeight: '500', color: '#d1d5db' },
+  lightInput: { padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px' },
