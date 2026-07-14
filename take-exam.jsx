@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 
-const TakeExam = ({ examId, navigateTo }) => {
+const TakeExam = () => {
+  const { id: examId } = useParams();
+  const navigate = useNavigate();
   const [exam, setExam] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -108,9 +111,9 @@ const TakeExam = ({ examId, navigateTo }) => {
     })
     .then(() => {
       alert("🛑 Time expired! Your answers were automatically saved.");
-      navigateTo('/dashboard');
+      navigate('/dashboard');
     })
-    .catch(() => navigateTo('/dashboard'));
+    .catch(() => navigate('/dashboard'));
   };
 
   const manualSubmit = () => {
@@ -125,7 +128,7 @@ const TakeExam = ({ examId, navigateTo }) => {
     .then((res) => {
       if (!res.ok) throw new Error();
       alert("🎉 Exam answers logged and synced successfully!");
-      navigateTo('/dashboard');
+      navigate('/dashboard');
     })
     .catch(() => {
       alert("Failed to sync structural scores matrix with database.");
