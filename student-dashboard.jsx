@@ -2,18 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
 import StudyNotes from './StudyNotes.jsx';
+import { getLogin, logout, setLastVisitedPage, getLastVisitedPage } from './localData.js';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState('Home'); 
+  const [activeTab, setActiveTabState] = useState(() => getLastVisitedPage() || 'Home');
   const [examsList, setExamsList] = useState([]); 
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [expandedResultId, setExpandedResultId] = useState(null);
-  
-  const studentEmail = localStorage.getItem('userEmail') || '';
+
+  const loggedInUser = getLogin();
+  const studentEmail = loggedInUser?.email || localStorage.getItem('userEmail') || '';
+
+  // Module 1: Login persistence guard — redirect if not authenticated
+  useEffect(() => {
+    if (!loggedInUser) {
+      navigate('/');
+    }
+  }, []);
+
+  // Module 4: Session Storage — remember the active tab for this session only
+  const setActiveTab = (tab) => {
+    setActiveTabState(tab);
+    setLastVisitedPage(tab);
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -41,7 +56,7 @@ const StudentDashboard = () => {
   };
 
   const handleLogout = () => {
-    localStorage.clear();
+    logout();
     navigate('/');
   };
 
