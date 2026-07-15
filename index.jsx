@@ -3,33 +3,33 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
 import { saveLogin, getLogin, registerUser, loginUser } from './localData.js';
 
-// Import the running man image asset directly
-import runningManImg from './WhatsApp Image 2026-07-15 at 10.05.08 AM.jpeg';
+// Fallback import / dynamic resolution for the running man image
+const runningManImg = require('./WhatsApp Image 2026-07-15 at 10.05.08 AM.jpeg');
 
 const IndexPortal = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
-  // Animation states for the transition sequence
-  // 'running' -> man rushes across to center
-  // 'transitioning' -> man fades out, registration card fades & scales in
-  // 'done' -> stable active registration state
+  // Animation states for the sequence:
+  // 'running' -> running man dashes from the left side to the center
+  // 'transitioning' -> running man fades out, while the registration card expands into view
+  // 'done' -> registration card is stable and interactive in the center
   const [animationState, setAnimationState] = useState('running');
 
   useEffect(() => {
-    // 1. Let the running man dash to the center for 1.2 seconds
-    const toTransitionTimer = setTimeout(() => {
+    // Stage 1: Wait 1.2 seconds for the running man to reach the center
+    const transitionTimer = setTimeout(() => {
       setAnimationState('transitioning');
     }, 1200);
 
-    // 2. Fully show the card and hide the running man after 1.8 seconds total
-    const toDoneTimer = setTimeout(() => {
+    // Stage 2: Reveal the registration form and hide the running man completely
+    const doneTimer = setTimeout(() => {
       setAnimationState('done');
     }, 1800);
 
     return () => {
-      clearTimeout(toTransitionTimer);
-      clearTimeout(toDoneTimer);
+      clearTimeout(transitionTimer);
+      clearTimeout(doneTimer);
     };
   }, []);
 
@@ -114,7 +114,7 @@ const IndexPortal = () => {
     setSubmitting(false);
   };
 
-  // Dynamic Styles based on Animation Phase
+  // Helper to dynamically merge current transition values into the layout style
   const getRunningManStyle = () => {
     if (animationState === 'running') {
       return {
@@ -125,7 +125,7 @@ const IndexPortal = () => {
     } else if (animationState === 'transitioning') {
       return {
         ...styles.runningMan,
-        transform: 'translate(-50%, -50%) translateX(30px) scale(0.9)',
+        transform: 'translate(-50%, -50%) translateX(50px) scale(0.9)',
         opacity: 0,
       };
     } else {
@@ -141,16 +141,16 @@ const IndexPortal = () => {
     if (animationState === 'running') {
       return {
         ...baseCard,
-        transform: 'scale(0.8)',
+        transform: 'scale(0.85)',
         opacity: 0,
         pointerEvents: 'none',
       };
-    } else if (animationState === 'transitioning' || animationState === 'done') {
+    } else {
       return {
         ...baseCard,
         transform: 'scale(1)',
         opacity: 1,
-        transition: 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease',
+        pointerEvents: 'auto',
       };
     }
   };
@@ -166,10 +166,10 @@ const IndexPortal = () => {
       </button>
 
       {/* Intro Animation Layer */}
-      {(animationState === 'running' || animationState === 'transitioning') && (
+      {animationState !== 'done' && (
         <img
           src={runningManImg}
-          alt="Running Man"
+          alt="Running Man Animation"
           style={getRunningManStyle()}
         />
       )}
@@ -317,14 +317,14 @@ const IndexPortal = () => {
   );
 };
 
-// Styles configuration
+// Consolidated styles setup
 const styles = {
   viewWindow: { width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative', fontFamily: 'sans-serif' },
   scrollWrapper: { display: 'flex', width: '100%', height: '100%', overflowX: 'hidden', scrollSnapType: 'x mandatory' },
   panelPageLight: { minWidth: '100vw', height: '100vh', backgroundColor: '#f3f4f6', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
   panelPageDark: { minWidth: '100vw', height: '100vh', backgroundColor: '#111827', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
   
-  // Custom styled Running Man rules
+  // Running man container rule with transition properties fully declared here
   runningMan: {
     position: 'absolute',
     top: '50%',
@@ -336,12 +336,24 @@ const styles = {
     zIndex: 100,
     pointerEvents: 'none',
     boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
-    // CSS-only hardware-accelerated initial dynamic slide-in
-    transform: 'translate(-50%, -50%) translateX(-150vw) scale(1)', 
+    // Slides in instantly from off-screen left, transition handles motion to center
+    transform: 'translate(-50%, -50%) translateX(-120vw) scale(1)', 
     transition: 'transform 1.1s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 0.5s ease',
   },
 
-  card: { backgroundColor: '#ffffff', padding: '35px', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', width: '100%', maxWidth: '360px', transform: 'scale(0.8)', opacity: 0 },
+  // Added base scale and opacity rules so CSS transitions apply smoothly during state shifts
+  card: { 
+    backgroundColor: '#ffffff', 
+    padding: '35px', 
+    borderRadius: '16px', 
+    boxShadow: '0 10px 25px rgba(0,0,0,0.05)', 
+    width: '100%', 
+    maxWidth: '360px',
+    opacity: 0,
+    transform: 'scale(0.85)',
+    transition: 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease',
+  },
+
   header: { textAlign: 'center', marginBottom: '25px' },
   form: { display: 'flex', flexDirection: 'column', gap: '16px' },
   inputGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
