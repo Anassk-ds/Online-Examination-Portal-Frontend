@@ -3,33 +3,40 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
 import { saveLogin, getLogin, registerUser, loginUser } from './localData.js';
 
-// Fallback import / dynamic resolution for the running man image
-const runningManImg = require('./WhatsApp Image 2026-07-15 at 10.05.08 AM.jpeg');
+// Import the running man image
+import runningManImg from './WhatsApp Image 2026-07-15 at 10.05.08 AM.jpeg';
 
 const IndexPortal = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
-  // Animation states for the sequence:
-  // 'running' -> running man dashes from the left side to the center
-  // 'transitioning' -> running man fades out, while the registration card expands into view
-  // 'done' -> registration card is stable and interactive in the center
-  const [animationState, setAnimationState] = useState('running');
+  // Multi-step animation state machine:
+  // 1. 'offscreen'           -> Running man starts off-screen left, card is invisible.
+  // 2. 'running-to-center'   -> Running man slides into the exact center.
+  // 3. 'reveal-registration' -> Running man fades out, and registration card fades & scales in.
+  // 4. 'active'              -> Form inputs are fully interactive.
+  const [animationStep, setAnimationStep] = useState('offscreen');
 
   useEffect(() => {
-    // Stage 1: Wait 1.2 seconds for the running man to reach the center
-    const transitionTimer = setTimeout(() => {
-      setAnimationState('transitioning');
-    }, 1200);
+    // Phase 1: Immediately trigger slide-in motion from the left margin
+    const slideTimer = setTimeout(() => {
+      setAnimationStep('running-to-center');
+    }, 50);
 
-    // Stage 2: Reveal the registration form and hide the running man completely
-    const doneTimer = setTimeout(() => {
-      setAnimationState('done');
-    }, 1800);
+    // Phase 2: After 1.4 seconds (when he hits the center), fade him out and bring up the registration card
+    const revealTimer = setTimeout(() => {
+      setAnimationStep('reveal-registration');
+    }, 1450);
+
+    // Phase 3: Mark portal interactive after registration card completes its scale-up transition
+    const interactiveTimer = setTimeout(() => {
+      setAnimationStep('active');
+    }, 2150);
 
     return () => {
-      clearTimeout(transitionTimer);
-      clearTimeout(doneTimer);
+      clearTimeout(slideTimer);
+      clearTimeout(revealTimer);
+      clearTimeout(interactiveTimer);
     };
   }, []);
 
@@ -114,45 +121,55 @@ const IndexPortal = () => {
     setSubmitting(false);
   };
 
-  // Helper to dynamically merge current transition values into the layout style
+  // Dynamically calculate style properties for the Running Man image based on the current step
   const getRunningManStyle = () => {
-    if (animationState === 'running') {
-      return {
-        ...styles.runningMan,
-        transform: 'translate(-50%, -50%) translateX(0px) scale(1)',
-        opacity: 1,
-      };
-    } else if (animationState === 'transitioning') {
-      return {
-        ...styles.runningMan,
-        transform: 'translate(-50%, -50%) translateX(50px) scale(0.9)',
-        opacity: 0,
-      };
-    } else {
-      return { display: 'none' };
+    const baseStyle = styles.runningMan;
+    
+    switch (animationStep) {
+      case 'offscreen':
+        return {
+          ...baseStyle,
+          transform: 'translate(-50%, -50%) translateX(-120vw) scale(0.7)',
+          opacity: 0,
+        };
+      case 'running-to-center':
+        return {
+          ...baseStyle,
+          transform: 'translate(-50%, -50%) translateX(0px) scale(1)',
+          opacity: 1,
+        };
+      case 'reveal-registration':
+        return {
+          ...baseStyle,
+          transform: 'translate(-50%, -50%) scale(0.85)',
+          opacity: 0,
+        };
+      case 'active':
+      default:
+        return { display: 'none' };
     }
   };
 
+  // Dynamically calculate style properties for the form cards
   const getCardStyle = (isDark = false) => {
     const baseCard = isDark 
       ? { ...styles.card, backgroundColor: '#1f2937', border: '1px solid #374151' }
       : styles.card;
 
-    if (animationState === 'running') {
+    if (animationStep === 'offscreen' || animationStep === 'running-to-center') {
       return {
         ...baseCard,
-        transform: 'scale(0.85)',
+        transform: 'scale(0.8) translateY(30px)',
         opacity: 0,
         pointerEvents: 'none',
       };
-    } else {
-      return {
-        ...baseCard,
-        transform: 'scale(1)',
-        opacity: 1,
-        pointerEvents: 'auto',
-      };
     }
+    return {
+      ...baseCard,
+      transform: 'scale(1) translateY(0px)',
+      opacity: 1,
+      pointerEvents: 'auto',
+    };
   };
 
   return (
@@ -166,7 +183,7 @@ const IndexPortal = () => {
       </button>
 
       {/* Intro Animation Layer */}
-      {animationState !== 'done' && (
+      {animationStep !== 'active' && (
         <img
           src={runningManImg}
           alt="Running Man Animation"
@@ -317,14 +334,13 @@ const IndexPortal = () => {
   );
 };
 
-// Consolidated styles setup
 const styles = {
   viewWindow: { width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative', fontFamily: 'sans-serif' },
   scrollWrapper: { display: 'flex', width: '100%', height: '100%', overflowX: 'hidden', scrollSnapType: 'x mandatory' },
   panelPageLight: { minWidth: '100vw', height: '100vh', backgroundColor: '#f3f4f6', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
   panelPageDark: { minWidth: '100vw', height: '100vh', backgroundColor: '#111827', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
   
-  // Running man container rule with transition properties fully declared here
+  // Running man image properties positioned perfectly in absolute viewport space
   runningMan: {
     position: 'absolute',
     top: '50%',
@@ -336,12 +352,10 @@ const styles = {
     zIndex: 100,
     pointerEvents: 'none',
     boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
-    // Slides in instantly from off-screen left, transition handles motion to center
-    transform: 'translate(-50%, -50%) translateX(-120vw) scale(1)', 
-    transition: 'transform 1.1s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 0.5s ease',
+    transition: 'transform 1.3s cubic-bezier(0.1, 0.8, 0.15, 1.05), opacity 0.6s ease-out',
   },
 
-  // Added base scale and opacity rules so CSS transitions apply smoothly during state shifts
+  // Interactive cards with animation variables
   card: { 
     backgroundColor: '#ffffff', 
     padding: '35px', 
@@ -349,9 +363,7 @@ const styles = {
     boxShadow: '0 10px 25px rgba(0,0,0,0.05)', 
     width: '100%', 
     maxWidth: '360px',
-    opacity: 0,
-    transform: 'scale(0.85)',
-    transition: 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease',
+    transition: 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.6s ease-in-out',
   },
 
   header: { textAlign: 'center', marginBottom: '25px' },
