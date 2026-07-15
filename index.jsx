@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
 import { saveLogin, getLogin, registerUser, loginUser } from './localData.js';
 
-// Clean standard ES module import for the running man image
-import runningManImg from './WhatsApp Image 2026-07-15 at 10.05.08 AM.jpeg';
+// Absolute public web URL for a transparent running man vector silhouette icon
+const runningManImg = "https://cdn-icons-png.flaticon.com/512/55/55240.png";
 
 const IndexPortal = () => {
   const navigate = useNavigate();
@@ -62,7 +62,7 @@ const IndexPortal = () => {
 
   const handleAuth = (e, type, isRegister) => {
     e.preventDefault();
-    if (!isInteractive) return; // Prevent submissions while animating
+    if (!isInteractive) return;
 
     setError('');
     setSuccess('');
@@ -354,13 +354,11 @@ const styles = {
     position: 'absolute',
     top: '50%',
     left: '50%',
-    width: '320px',
-    height: '320px',
-    objectFit: 'cover',
-    borderRadius: '16px',
+    width: '260px',
+    height: '260px',
+    objectFit: 'contain',
     zIndex: 100,
     pointerEvents: 'none',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
   },
 
   card: { 
@@ -379,14 +377,14 @@ const styles = {
   labelDark: { fontSize: '12px', fontWeight: 'bold', color: '#9ca3af' },
   lightInput: { padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#fff', color: '#1f2937' },
   darkInput: { padding: '12px', border: '1px solid #4b5563', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#374151', color: '#fff' },
-  studentBtn: { backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold' },
-  adminBtn: { backgroundColor: '#4f46e5', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold' },
+  studentBtn: { backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' },
+  adminBtn: { backgroundColor: '#4f46e5', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' },
   toggleRow: { textAlign: 'center', marginTop: '5px' },
-  linkLight: { fontSize: '13px', color: '#2563eb', textDecoration: 'underline' },
-  linkDark: { fontSize: '13px', color: '#60a5fa', textDecoration: 'underline' },
+  linkLight: { fontSize: '13px', color: '#2563eb', textDecoration: 'underline', cursor: 'pointer' },
+  linkDark: { fontSize: '13px', color: '#60a5fa', textDecoration: 'underline', cursor: 'pointer' },
   switchTerminalBox: { borderTop: '1px solid #e5e7eb', marginTop: '25px', paddingTop: '20px', textAlign: 'center' },
-  slideNextBtn: { background: 'none', border: '1px solid #cbd5e1', padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px' },
-  slidePrevBtn: { background: 'none', border: '1px solid #4b5563', padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', color: '#9ca3af', fontSize: '13px' },
+  slideNextBtn: { background: 'none', border: '1px solid #cbd5e1', padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', color: '#4b5563', fontSize: '13px', cursor: 'pointer' },
+  slidePrevBtn: { background: 'none', border: '1px solid #4b5563', padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', color: '#9ca3af', fontSize: '13px', cursor: 'pointer' },
   errorAlert: { backgroundColor: '#fef2f2', border: '1px solid #fee2e2', color: '#dc2626', padding: '12px', borderRadius: '8px', fontSize: '13px', marginBottom: '15px', textAlign: 'center' },
   successAlert: { backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#16a34a', padding: '12px', borderRadius: '8px', fontSize: '13px', marginBottom: '15px', textAlign: 'center' }
 };
