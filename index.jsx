@@ -3,25 +3,53 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
 import { saveLogin, getLogin, registerUser, loginUser } from './localData.js';
 
-// Import the running man image
+// Import the running man image asset directly
 import runningManImg from './WhatsApp Image 2026-07-15 at 10.05.08 AM.jpeg';
 
 const IndexPortal = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
-  // Controls when the portal components become interactive (after animation completes)
-  const [isInteractive, setIsInteractive] = useState(false);
+  // Bulletproof state machine for animation flow:
+  // 1. 'start'   -> Man is completely off-screen to the left; Card is hidden.
+  // 2. 'running' -> Man transitions smoothly from the left margin to the center.
+  // 3. 'reached' -> Man holds position at the exact center.
+  // 4. 'fading'  -> Man fades out while the registration card scales & fades in.
+  // 5. 'done'    -> Animation completes and the form becomes fully interactive.
+  const [animStep, setAnimStep] = useState('start');
 
   useEffect(() => {
-    // Enable interaction with input fields after the intro animation finishes (approx 2.4s)
-    const timer = setTimeout(() => {
-      setIsInteractive(true);
-    }, 2400);
-    return () => clearTimeout(timer);
+    // Phase 1: Trigger the run animation immediately after mounting
+    const t1 = setTimeout(() => {
+      setAnimStep('running');
+    }, 50);
+
+    // Phase 2: Wait 1.2 seconds for the run animation to complete
+    const t2 = setTimeout(() => {
+      setAnimStep('reached');
+    }, 1250);
+
+    // Phase 3: Initiate the fading transition (Running man fades out, Card fades in)
+    const t3 = setTimeout(() => {
+      setAnimStep('fading');
+    }, 1450);
+
+    // Phase 4: Mark animation sequence complete
+    const t4 = setTimeout(() => {
+      setAnimStep('done');
+    }, 2150);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+    };
   }, []);
 
-  // Module 1 (Day-45): if login details are already in Local Storage, skip form entirely
+  const isInteractive = animStep === 'done';
+
+  // Module 1 (Day-45): If session exists, auto-navigate
   useEffect(() => {
     const loggedInUser = getLogin();
     if (loggedInUser && loggedInUser.role) {
@@ -61,7 +89,7 @@ const IndexPortal = () => {
 
   const handleAuth = (e, type, isRegister) => {
     e.preventDefault();
-    if (!isInteractive) return; // Prevent submissions during intro
+    if (!isInteractive) return; // Block submissions during the animation sequence
 
     setError('');
     setSuccess('');
@@ -104,57 +132,91 @@ const IndexPortal = () => {
     setSubmitting(false);
   };
 
+  // Pure inline-style builder for the Running Man image
+  const getRunningManStyle = () => {
+    const baseStyle = {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      width: '320px',
+      height: '320px',
+      objectFit: 'cover',
+      borderRadius: '16px',
+      zIndex: 100,
+      pointerEvents: 'none',
+      boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+    };
+
+    switch (animStep) {
+      case 'start':
+        return {
+          ...baseStyle,
+          transform: 'translate(-50%, -50%) translateX(-100vw) scale(0.9)',
+          opacity: 1,
+          transition: 'none',
+        };
+      case 'running':
+        return {
+          ...baseStyle,
+          transform: 'translate(-50%, -50%) translateX(0px) scale(1)',
+          opacity: 1,
+          transition: 'transform 1.2s cubic-bezier(0.1, 0.8, 0.2, 1), opacity 0.5s',
+        };
+      case 'reached':
+        return {
+          ...baseStyle,
+          transform: 'translate(-50%, -50%) translateX(0px) scale(1)',
+          opacity: 1,
+          transition: 'transform 0.5s, opacity 0.5s',
+        };
+      case 'fading':
+        return {
+          ...baseStyle,
+          transform: 'translate(-50%, -50%) scale(0.85)',
+          opacity: 0,
+          transition: 'transform 0.6s ease, opacity 0.6s ease',
+        };
+      case 'done':
+      default:
+        return { display: 'none' };
+    }
+  };
+
+  // Pure inline-style builder for the Portal Container Card
+  const getCardStyle = (isDark = false) => {
+    const baseCard = isDark 
+      ? { ...styles.card, backgroundColor: '#1f2937', border: '1px solid #374151' }
+      : styles.card;
+
+    if (animStep === 'start' || animStep === 'running' || animStep === 'reached') {
+      return {
+        ...baseCard,
+        transform: 'scale(0.8) translateY(30px)',
+        opacity: 0,
+        pointerEvents: 'none',
+        transition: 'none',
+      };
+    }
+    if (animStep === 'fading') {
+      return {
+        ...baseCard,
+        transform: 'scale(1) translateY(0px)',
+        opacity: 1,
+        pointerEvents: 'auto',
+        transition: 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.8s ease-in-out',
+      };
+    }
+    // Fully interactive, animation finished
+    return {
+      ...baseCard,
+      transform: 'scale(1) translateY(0px)',
+      opacity: 1,
+      pointerEvents: 'auto',
+    };
+  };
+
   return (
     <div style={styles.viewWindow}>
-      {/* Inject CSS keyframes directly into the document head */}
-      <style>{`
-        @keyframes runToCenterAndFade {
-          0% {
-            transform: translate(-50%, -50%) translateX(-100vw) scale(0.9);
-            opacity: 1;
-          }
-          50% {
-            transform: translate(-50%, -50%) translateX(0px) scale(1);
-            opacity: 1;
-          }
-          75% {
-            transform: translate(-50%, -50%) translateX(0px) scale(1);
-            opacity: 1;
-          }
-          100% {
-            transform: translate(-50%, -50%) translateX(0px) scale(0.85);
-            opacity: 0;
-            visibility: hidden;
-          }
-        }
-
-        @keyframes revealRegistrationCard {
-          0% {
-            opacity: 0;
-            transform: scale(0.8) translateY(30px);
-            pointer-events: none;
-          }
-          75% {
-            opacity: 0;
-            transform: scale(0.8) translateY(30px);
-            pointer-events: none;
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1) translateY(0px);
-            pointer-events: auto;
-          }
-        }
-
-        .animated-running-man {
-          animation: runToCenterAndFade 2.2s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
-        }
-
-        .animated-portal-card {
-          animation: revealRegistrationCard 2.8s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
-        }
-      `}</style>
-
       <button
         onClick={toggleTheme}
         className="theme-toggle-btn"
@@ -163,19 +225,20 @@ const IndexPortal = () => {
         {theme === 'light' ? '🌙' : '☀️'}
       </button>
 
-      {/* Running Man Image Layer */}
-      <img
-        src={runningManImg}
-        alt="Running Man"
-        className="animated-running-man"
-        style={styles.runningMan}
-      />
+      {/* Dynamic running man layer */}
+      {animStep !== 'done' && (
+        <img
+          src={runningManImg}
+          alt="Running Man Animation"
+          style={getRunningManStyle()}
+        />
+      )}
 
       <div style={styles.scrollWrapper} ref={scrollContainerRef}>
         
         {/* ================= PANEL 1: STUDENT PORTAL ================= */}
         <div style={styles.panelPageLight}>
-          <div className="animated-portal-card" style={styles.card}>
+          <div style={getCardStyle(false)}>
             <div style={styles.header}>
               <h2 style={{ color: '#1f2937', margin: '0 0 5px 0' }}>Student Portal</h2>
               <p style={{ color: '#6b7280', fontSize: '12px', margin: 0, textTransform: 'uppercase' }}>Online Examination Terminal</p>
@@ -258,7 +321,7 @@ const IndexPortal = () => {
 
         {/* ================= PANEL 2: ADMIN SYSTEM CONSOLE ================= */}
         <div style={styles.panelPageDark}>
-          <div className="animated-portal-card" style={{ ...styles.card, backgroundColor: '#1f2937', border: '1px solid #374151' }}>
+          <div style={getCardStyle(true)}>
             <div style={styles.header}>
               <h2 style={{ color: '#f9fafb', margin: '0 0 5px 0' }}>Admin Console</h2>
               <p style={{ color: '#9ca3af', fontSize: '12px', margin: 0, textTransform: 'uppercase' }}>Secure Infrastructure Access</p>
@@ -344,33 +407,20 @@ const IndexPortal = () => {
   );
 };
 
+// Main styles setup
 const styles = {
   viewWindow: { width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative', fontFamily: 'sans-serif' },
   scrollWrapper: { display: 'flex', width: '100%', height: '100%', overflowX: 'hidden', scrollSnapType: 'x mandatory' },
   panelPageLight: { minWidth: '100vw', height: '100vh', backgroundColor: '#f3f4f6', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
   panelPageDark: { minWidth: '100vw', height: '100vh', backgroundColor: '#111827', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
   
-  // Placed in absolute center of viewport
-  runningMan: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    width: '320px',
-    height: '320px',
-    objectFit: 'cover',
-    borderRadius: '16px',
-    zIndex: 100,
-    pointerEvents: 'none',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
-  },
-
   card: { 
     backgroundColor: '#ffffff', 
     padding: '35px', 
     borderRadius: '16px', 
     boxShadow: '0 10px 25px rgba(0,0,0,0.05)', 
     width: '100%', 
-    maxWidth: '360px'
+    maxWidth: '360px' 
   },
 
   header: { textAlign: 'center', marginBottom: '25px' },
