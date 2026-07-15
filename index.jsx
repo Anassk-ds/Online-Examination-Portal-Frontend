@@ -14,7 +14,7 @@ const IndexPortal = () => {
   const [isInteractive, setIsInteractive] = useState(false);
 
   useEffect(() => {
-    // Enable form interactions once the visual card animation completes (~2.5s)
+    // Enable form interactions once the fade-in finishes (~2.5s)
     const interactiveTimer = setTimeout(() => {
       setIsInteractive(true);
     }, 2500);
@@ -107,42 +107,41 @@ const IndexPortal = () => {
 
   return (
     <div style={styles.viewWindow}>
-      {/* 100% Bulletproof Native CSS Keyframes Injection */}
+      {/* 100% Bulletproof Native CSS Keyframes */}
       <style>{`
+        /* Running man moves from left (-100vw) to exact center (0px), stays, then fades out */
         @keyframes runToCenterAndFade {
           0% {
-            transform: translate(-50%, -50%) translateX(-100vw) scale(0.95);
+            transform: translate(-50%, -50%) translateX(-100vw);
             opacity: 1;
           }
           48% {
-            transform: translate(-50%, -50%) translateX(0px) scale(1);
+            transform: translate(-50%, -50%) translateX(0px);
             opacity: 1;
           }
           72% {
-            transform: translate(-50%, -50%) translateX(0px) scale(1);
+            transform: translate(-50%, -50%) translateX(0px);
             opacity: 1;
           }
           100% {
-            transform: translate(-50%, -50%) translateX(0px) scale(0.85);
+            transform: translate(-50%, -50%) translateX(0px);
             opacity: 0;
             visibility: hidden;
           }
         }
 
-        @keyframes cardReveal {
+        /* Card stays completely static in position, and only fades in */
+        @keyframes cardFadeReveal {
           0% {
             opacity: 0;
-            transform: scale(0.85) translateY(30px);
             pointer-events: none;
           }
           65% {
             opacity: 0;
-            transform: scale(0.85) translateY(30px);
             pointer-events: none;
           }
           100% {
             opacity: 1;
-            transform: scale(1) translateY(0px);
             pointer-events: auto;
           }
         }
@@ -152,7 +151,7 @@ const IndexPortal = () => {
         }
 
         .card-animation {
-          animation: cardReveal 2.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: cardFadeReveal 2.6s ease-in-out forwards;
         }
       `}</style>
 
@@ -164,7 +163,7 @@ const IndexPortal = () => {
         {theme === 'light' ? '🌙' : '☀️'}
       </button>
 
-      {/* Running Man Layer */}
+      {/* Running Man Image Layer */}
       <img
         src={runningManImg}
         alt="Running Man"
