@@ -163,6 +163,19 @@ export const getActivityLog = () => {
   return JSON.parse(localStorage.getItem("activityLog")) || [];
 };
 
+// Exam-in-progress persistence (Session Storage) — survives refresh, cleared on submit
+export const saveExamProgress = (examId, progress) => {
+  sessionStorage.setItem(`examProgress:${examId}`, JSON.stringify(progress));
+};
+
+export const getExamProgress = (examId) => {
+  return JSON.parse(sessionStorage.getItem(`examProgress:${examId}`)) || null;
+};
+
+export const clearExamProgress = (examId) => {
+  sessionStorage.removeItem(`examProgress:${examId}`);
+};
+
 // Bonus 6: Auto Save Draft
 export const saveDraft = (formData) => {
   sessionStorage.setItem("studentFormDraft", JSON.stringify(formData));
