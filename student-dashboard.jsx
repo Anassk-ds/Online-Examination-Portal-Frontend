@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
 import { getExams, getResults, hasAttempted } from './localData.js';
 import StudyNotes from './StudyNotes.jsx';
+import { FiHome, FiEdit3, FiBarChart2, FiBookOpen, FiSun, FiMoon, FiLogOut, FiClock, FiFlag, FiCheckCircle, FiLock, FiXCircle, FiEye } from 'react-icons/fi';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -52,21 +53,21 @@ const StudentDashboard = () => {
     <div className="dash-container page-fade-in">
       <div className="dash-sidebar sidebar-fade-in">
         <div className="dash-sidebar-header">
-          <h3>🎓 Student Hub</h3>
+          <h3><span className="dash-avatar">{(studentEmail || 'S').charAt(0).toUpperCase()}</span> Student Hub</h3>
           <p>{studentEmail}</p>
         </div>
         <div className="dash-nav">
-          <button onClick={() => setActiveTab('Home')} className={`dash-nav-btn sidebar-item-animated ${activeTab === 'Home' ? 'active' : ''}`}>🏠 Home</button>
-          <button onClick={() => setActiveTab('Exams')} className={`dash-nav-btn sidebar-item-animated ${activeTab === 'Exams' ? 'active' : ''}`}>✍️ Available Exams</button>
-          <button onClick={() => setActiveTab('Results')} className={`dash-nav-btn sidebar-item-animated ${activeTab === 'Results' ? 'active' : ''}`}>📊 My Results</button>
-          <button onClick={() => setActiveTab('Notes')} className={`dash-nav-btn sidebar-item-animated ${activeTab === 'Notes' ? 'active' : ''}`}>📝 Study Notes</button>
+          <button onClick={() => setActiveTab('Home')} className={`dash-nav-btn sidebar-item-animated ${activeTab === 'Home' ? 'active' : ''}`}><FiHome /> Home</button>
+          <button onClick={() => setActiveTab('Exams')} className={`dash-nav-btn sidebar-item-animated ${activeTab === 'Exams' ? 'active' : ''}`}><FiEdit3 /> Available Exams</button>
+          <button onClick={() => setActiveTab('Results')} className={`dash-nav-btn sidebar-item-animated ${activeTab === 'Results' ? 'active' : ''}`}><FiBarChart2 /> My Results</button>
+          <button onClick={() => setActiveTab('Notes')} className={`dash-nav-btn sidebar-item-animated ${activeTab === 'Notes' ? 'active' : ''}`}><FiBookOpen /> Study Notes</button>
         </div>
         <div className="dash-theme-row">
           <button onClick={toggleTheme} className="theme-toggle-btn btn-animated" style={{ width: '100%' }}>
-            {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+            {theme === 'light' ? <><FiMoon /> Dark Mode</> : <><FiSun /> Light Mode</>}
           </button>
         </div>
-        <button onClick={handleLogout} className="dash-logout-btn btn-animated">🚪 Log Out</button>
+        <button onClick={handleLogout} className="dash-logout-btn btn-animated"><FiLogOut /> Log Out</button>
       </div>
 
       <div className="dash-main">
@@ -91,7 +92,7 @@ const StudentDashboard = () => {
 
         {activeTab === 'Exams' && (
           <div className="dash-section-card card-animated">
-            <h3 className="dash-section-title">✍️ Available Exams</h3>
+            <h3 className="dash-section-title"><FiEdit3 /> Available Exams</h3>
             <div className="dash-list">
               {examsList.length === 0 ? (
                 <div className="dash-empty-state">No exams have been published yet.</div>
@@ -109,20 +110,20 @@ const StudentDashboard = () => {
                       <div>
                         <h4 className="dash-item-title">{exam.title}</h4>
                         <div className="dash-item-meta">
-                          <span>⏱️ Starts: {start.toLocaleString()}</span>
-                          <span>🛑 Ends: {end.toLocaleString()}</span>
+                          <span><FiClock /> Starts: {start.toLocaleString()}</span>
+                          <span><FiFlag /> Ends: {end.toLocaleString()}</span>
                         </div>
                       </div>
                       <div className="dash-item-actions">
-                        <button onClick={() => handleViewExamDetails(exam._id)} className="dash-btn-view btn-animated">📋 View</button>
+                        <button onClick={() => handleViewExamDetails(exam._id)} className="dash-btn-view btn-animated"><FiEye /> View</button>
                         {attempted ? (
-                          <span className="dash-badge-attempted">✅ Attempted</span>
+                          <span className="dash-badge-attempted"><FiCheckCircle /> Attempted</span>
                         ) : isOpen ? (
                           <button onClick={() => handleLaunchExam(exam._id)} className="dash-btn-start btn-animated">Start Exam ➔</button>
                         ) : isUpcoming ? (
-                          <span className="dash-badge-locked">🔒 Locked</span>
+                          <span className="dash-badge-locked"><FiLock /> Locked</span>
                         ) : (
-                          <span className="dash-badge-expired">🛑 Expired</span>
+                          <span className="dash-badge-expired"><FiXCircle /> Expired</span>
                         )}
                       </div>
                     </div>
@@ -135,7 +136,7 @@ const StudentDashboard = () => {
 
         {activeTab === 'Results' && (
           <div className="dash-section-card card-animated">
-            <h3 className="dash-section-title">📊 My Results</h3>
+            <h3 className="dash-section-title"><FiBarChart2 /> My Results</h3>
             <div className="dash-list">
               {results.length === 0 ? (
                 <div className="dash-empty-state">You haven't submitted any exams yet.</div>
