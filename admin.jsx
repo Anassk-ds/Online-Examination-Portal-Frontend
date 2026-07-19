@@ -158,9 +158,17 @@ const AdminPanel = () => {
       return;
     }
     for (const q of questions) {
-      if (q.type === 'coding' && (q.testCases || []).every((tc) => !tc.input && !tc.output)) {
-        setError('Every coding question needs at least one test case with input and expected output.');
-        return;
+      if (q.type === 'coding') {
+        const cases = q.testCases || [];
+        if (cases.length === 0 || cases.every((tc) => !tc.input && !tc.output)) {
+          setError(`"${q.text || 'A coding question'}" needs at least one test case with input and expected output.`);
+          return;
+        }
+        const incomplete = cases.some((tc) => tc.input?.trim() && !tc.output?.trim());
+        if (incomplete) {
+          setError(`"${q.text || 'A coding question'}" has a test case with input but no expected output — every test case needs both, or students' code will auto-pass with blank output.`);
+          return;
+        }
       }
     }
 
