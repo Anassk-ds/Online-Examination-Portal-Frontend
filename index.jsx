@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
-import { getUsers, saveUsers } from './localData.js';
+import { registerUser, loginUser } from './apiClient.js';
 import { FiSun, FiMoon, FiEye, FiEyeOff, FiUser, FiMail, FiLock, FiShield, FiArrowRight } from 'react-icons/fi';
 
 const IndexPortal = () => {
@@ -34,8 +34,9 @@ const IndexPortal = () => {
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleAuth = (e, type, isRegister) => {
+  const handleAuth = async (e, type, isRegister) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -51,43 +52,30 @@ const IndexPortal = () => {
       return setError('Master Admin verification code is required.');
     }
 
-    const users = getUsers();
-
-    if (isRegister) {
-      if (users.some((u) => u.email === email)) {
-        setError('An account with this email already exists.');
-        return;
-      }
-
-      const newUser = { id: crypto.randomUUID(), name, email, password, role: type, isApproved: type === 'admin' };
-      saveUsers([...users, newUser]);
-
-      if (type === 'student') {
-        setSuccess('Registered! Your account is pending Admin approval before you can sign in.');
-        setIsStudentRegister(false);
-        setStudentName(''); setStudentEmail(''); setStudentPassword('');
+    setSubmitting(true);
+    try {
+      if (isRegister) {
+        const data = await registerUser({ name, email, password, role: type, masterCode: masterAdminEmail });
+        setSuccess(data.message);
+        if (type === 'student') {
+          setIsStudentRegister(false);
+          setStudentName(''); setStudentEmail(''); setStudentPassword('');
+        } else {
+          setIsAdminRegister(false);
+          setAdminName(''); setAdminEmail(''); setAdminPassword(''); setMasterAdminEmail('');
+        }
       } else {
-        setSuccess('Admin account created! You can now sign in.');
-        setIsAdminRegister(false);
-        setAdminName(''); setAdminEmail(''); setAdminPassword(''); setMasterAdminEmail('');
+        const data = await loginUser({ email, password, role: type });
+        localStorage.setItem('userEmail', data.user.email);
+        localStorage.setItem('userName', data.user.name);
+        localStorage.setItem('userRole', data.user.role);
+        navigate(data.user.role === 'admin' ? '/admin' : '/dashboard');
       }
-      return;
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
     }
-
-    const match = users.find((u) => u.email === email && u.password === password);
-    if (!match) {
-      setError('Invalid email or password.');
-      return;
-    }
-    if (match.role === 'student' && !match.isApproved) {
-      setError('Your account is pending Admin approval.');
-      return;
-    }
-
-    localStorage.setItem('userEmail', match.email);
-    localStorage.setItem('userName', match.name);
-    localStorage.setItem('userRole', match.role);
-    navigate(match.role === 'admin' ? '/admin' : '/dashboard');
   };
 
   return (
@@ -132,8 +120,8 @@ const IndexPortal = () => {
               </div>
             </div>
 
-            <button type="submit" className="portal-btn-student btn-animated">
-              {isStudentRegister ? 'Register Profile' : 'Sign In'}
+            <button type="submit" className="portal-btn-student btn-animated" disabled={submitting}>
+              {submitting ? 'Please wait…' : isStudentRegister ? 'Register Profile' : 'Sign In'}
             </button>
 
             <div className="portal-toggle-row">
@@ -191,8 +179,8 @@ const IndexPortal = () => {
               </div>
             )}
 
-            <button type="submit" className="portal-btn-admin btn-animated">
-              {isAdminRegister ? 'Create Admin Account' : 'Sign In'}
+            <button type="submit" className="portal-btn-admin btn-animated" disabled={submitting}>
+              {submitting ? 'Please wait…' : isAdminRegister ? 'Create Admin Account' : 'Sign In'}
             </button>
 
             <div className="portal-toggle-row">
