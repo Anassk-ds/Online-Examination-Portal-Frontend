@@ -120,6 +120,12 @@ const TakeExam = () => {
     setRunning(false);
   };
 
+  // Change these two numbers to adjust how many marks each question type is worth.
+  // Coding questions still award partial credit within their weight based on
+  // how many test cases passed (e.g. CODING_MARKS=5 and passing 3/4 cases = 3.75).
+  const MCQ_MARKS = 1;
+  const CODING_MARKS = 1;
+
   const gradeAndSave = async () => {
     let score = 0;
     const finalAnswers = {};
@@ -141,7 +147,7 @@ const TakeExam = () => {
         setGradingMessage(`Running your code for Question ${idx + 1} of ${questions.length}...`);
         const { results, apiFailed } = await runTestCases(lang, code, testCases);
         const passedCount = results.filter((r) => r.passed).length;
-        const questionScore = testCases.length ? passedCount / testCases.length : 0;
+        const questionScore = testCases.length ? (passedCount / testCases.length) * CODING_MARKS : 0;
         score += questionScore;
 
         finalAnswers[idx] = {
@@ -154,11 +160,13 @@ const TakeExam = () => {
         };
       } else {
         finalAnswers[idx] = answer;
-        if (answer === q.correct) score++;
+        if (answer === q.correct) score += MCQ_MARKS;
       }
     }
 
     setGradingMessage('');
+
+    const totalMarks = questions.reduce((sum, q) => sum + (q.type === 'coding' ? CODING_MARKS : MCQ_MARKS), 0);
 
     const finalResult = {
       studentEmail,
@@ -166,6 +174,7 @@ const TakeExam = () => {
       examTitle: exam?.title || 'Exam Session',
       score: Math.round(score * 100) / 100,
       totalQuestions: questions.length,
+      totalMarks,
       studentAnswers: finalAnswers
     };
 
@@ -231,7 +240,7 @@ const TakeExam = () => {
           <span className="result-emoji">🎉</span>
           <h2 className="result-title">Exam Submitted!</h2>
           <p className="result-subtitle">{result.examTitle}</p>
-          <div className="result-score-badge">{scoreLabel} / {result.totalQuestions}</div>
+          <div className="result-score-badge">{scoreLabel} / {result.totalMarks ?? result.totalQuestions}</div>
 
           <div className="result-breakdown">
             {questions.map((q, idx) => {
