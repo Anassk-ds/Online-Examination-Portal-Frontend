@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getExams, hasAttempted } from './localData.js';
+import { getExam, checkAttempted } from './apiClient.js';
 
 const ExamDetails = () => {
   const { id } = useParams();
@@ -8,20 +8,30 @@ const ExamDetails = () => {
   const studentEmail = localStorage.getItem('userEmail') || '';
 
   const [exam, setExam] = useState(null);
+  const [attempted, setAttempted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError('');
 
-    const found = getExams().find((e) => e._id === id);
-    if (found) {
-      setExam(found);
-    } else {
-      setError('Exam not found.');
-    }
-    setLoading(false);
+    (async () => {
+      try {
+        const [found, isAttempted] = await Promise.all([getExam(id), checkAttempted(id, studentEmail)]);
+        if (!cancelled) {
+          setExam(found);
+          setAttempted(isAttempted);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message || 'Exam not found.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [id]);
 
   if (loading) {
@@ -47,7 +57,6 @@ const ExamDetails = () => {
   const now = new Date();
   const status = start && end ? (now < start ? 'Upcoming' : now > end ? 'Closed' : 'Open') : 'Unscheduled';
   const badgeClass = status === 'Open' ? 'details-badge-open' : status === 'Upcoming' ? 'details-badge-upcoming' : 'details-badge-closed';
-  const attempted = hasAttempted(exam._id, studentEmail);
 
   return (
     <div className="details-page">
