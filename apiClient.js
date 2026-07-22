@@ -15,8 +15,14 @@ const unwrap = async (promise) => {
     const res = await promise;
     return res.data;
   } catch (err) {
-    const message = err.response?.data?.message || 'Something went wrong talking to the server.';
-    throw new Error(message);
+    console.log("Response:", err.response);
+    console.log("Error:", err.message);
+
+    throw new Error(
+      err.response?.data?.message ||
+      err.message ||
+      "Something went wrong talking to the server."
+    );
   }
 };
 
