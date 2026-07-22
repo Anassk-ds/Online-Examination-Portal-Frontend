@@ -21,7 +21,15 @@ const TakeExam = () => {
   const [runStdin, setRunStdin] = useState('');
   const [runOutput, setRunOutput] = useState(null);
   const [running, setRunning] = useState(false);
+  const [testRunResults, setTestRunResults] = useState(null); // { results, apiFailed } from clicking "Run Test Cases"
+  const [runningTests, setRunningTests] = useState(false);
   const [result, setResult] = useState(null); // holds the final graded result once submitted
+
+  const [examStarted, setExamStarted] = useState(false);
+  const [violations, setViolations] = useState(0);
+  const [violationNotice, setViolationNotice] = useState('');
+  const [copyBlockedNotice, setCopyBlockedNotice] = useState(false);
+  const MAX_VIOLATIONS = 3;
 
   const studentEmail = localStorage.getItem('userEmail') || 'student@domain.com';
 
@@ -66,7 +74,7 @@ const TakeExam = () => {
   }, [examId]);
 
   useEffect(() => {
-    if (timeLeft === null || result) return;
+    if (!examStarted || timeLeft === null || result) return;
     if (timeLeft <= 0) {
       handleAutoSubmit();
       return;
@@ -74,7 +82,7 @@ const TakeExam = () => {
     const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, result]);
+  }, [timeLeft, result, examStarted]);
 
   useEffect(() => {
     if (questions[currentIdx]?.type === 'coding') {
@@ -83,6 +91,7 @@ const TakeExam = () => {
       setLocalCode(existing?.code !== undefined ? existing.code : getStarterCode(lang));
       setRunStdin(questions[currentIdx]?.sampleInput || '');
       setRunOutput(null);
+      setTestRunResults(null);
     }
   }, [currentIdx, questions]);
 
@@ -120,11 +129,15 @@ const TakeExam = () => {
     setRunning(false);
   };
 
-  // Change these two numbers to adjust how many marks each question type is worth.
-  // Coding questions still award partial credit within their weight based on
-  // how many test cases passed (e.g. CODING_MARKS=5 and passing 3/4 cases = 3.75).
-  const MCQ_MARKS = 1;
-  const CODING_MARKS = 1;
+  const handleRunTestCases = async () => {
+    const testCases = questions[currentIdx]?.testCases || [];
+    if (testCases.length === 0) return;
+    setRunningTests(true);
+    setTestRunResults(null);
+    const outcome = await runTestCases(currentLang(), localCode, testCases);
+    setTestRunResults(outcome);
+    setRunningTests(false);
+  };
 
   const gradeAndSave = async () => {
     let score = 0;
@@ -133,6 +146,7 @@ const TakeExam = () => {
     for (let idx = 0; idx < questions.length; idx++) {
       const q = questions[idx];
       const answer = answers[idx];
+      const questionMarks = q.marks ?? 1; // older exams saved before per-question marks default to 1
 
       if (q.type === 'coding') {
         const code = answer?.code || '';
@@ -147,7 +161,7 @@ const TakeExam = () => {
         setGradingMessage(`Running your code for Question ${idx + 1} of ${questions.length}...`);
         const { results, apiFailed } = await runTestCases(lang, code, testCases);
         const passedCount = results.filter((r) => r.passed).length;
-        const questionScore = testCases.length ? (passedCount / testCases.length) * CODING_MARKS : 0;
+        const questionScore = testCases.length ? (passedCount / testCases.length) * questionMarks : 0;
         score += questionScore;
 
         finalAnswers[idx] = {
@@ -160,13 +174,13 @@ const TakeExam = () => {
         };
       } else {
         finalAnswers[idx] = answer;
-        if (answer === q.correct) score += MCQ_MARKS;
+        if (answer === q.correct) score += questionMarks;
       }
     }
 
     setGradingMessage('');
 
-    const totalMarks = questions.reduce((sum, q) => sum + (q.type === 'coding' ? CODING_MARKS : MCQ_MARKS), 0);
+    const totalMarks = questions.reduce((sum, q) => sum + (q.marks ?? 1), 0);
 
     const finalResult = {
       studentEmail,
@@ -208,6 +222,87 @@ const TakeExam = () => {
     }
   };
 
+  // Requesting fullscreen only works as a direct response to a user click
+  // (browsers reject it if called automatically on page load), so this runs
+  // from the "Start Exam" button rather than in a useEffect on mount.
+  const handleStartExam = async () => {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch {
+      // Some browsers/devices don't support fullscreen (or the user's
+      // security settings block it) — proceed anyway rather than blocking
+      // the student from taking the exam at all.
+    }
+    setExamStarted(true);
+  };
+
+  const registerViolation = (reason) => {
+    setViolations((prev) => {
+      const next = prev + 1;
+      if (next >= MAX_VIOLATIONS) {
+        setViolationNotice(`${reason} This was your final warning — your exam is being auto-submitted now.`);
+        handleAutoSubmit();
+      } else {
+        setViolationNotice(`${reason} Warning ${next} of ${MAX_VIOLATIONS - 1} — your exam will be auto-submitted if this happens once more.`);
+      }
+      return next;
+    });
+  };
+
+  // Tab-switch / minimize detection.
+  useEffect(() => {
+    if (!examStarted || result || submitting) return;
+
+    let lastViolationAt = 0;
+    const guardedViolation = (reason) => {
+      const now = Date.now();
+      if (now - lastViolationAt < 1500) return; // avoid double-counting one switch (blur + visibilitychange firing together)
+      lastViolationAt = now;
+      registerViolation(reason);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.hidden) guardedViolation('You switched away from the exam tab.');
+    };
+    const onBlur = () => {
+      guardedViolation('You switched away from the exam window.');
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('blur', onBlur);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examStarted, result, submitting]);
+
+  // Exiting fullscreen (e.g. pressing Esc) counts as a violation too.
+  useEffect(() => {
+    if (!examStarted || result || submitting) return;
+
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        registerViolation('You exited fullscreen mode.');
+      }
+    };
+
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examStarted, result, submitting]);
+
+  // Blocks copying the question out (e.g. to paste into an AI tool) and
+  // pasting content in (e.g. pasting pre-written code). Applied at the
+  // top-level wrapper so it covers the whole exam screen.
+  const handleBlockClipboard = (e) => {
+    e.preventDefault();
+    setCopyBlockedNotice(true);
+    setTimeout(() => setCopyBlockedNotice(false), 2000);
+  };
+
   if (loading) return <div className="exam-fallback-screen">🔄 Loading Exam...</div>;
 
   if (alreadyDone) {
@@ -221,6 +316,21 @@ const TakeExam = () => {
   }
 
   if (error) return <div className="exam-fallback-screen" style={{ color: '#ef4444', fontWeight: 'bold' }}>{error}</div>;
+
+  if (!examStarted) {
+    return (
+      <div className="exam-fallback-screen" style={{ flexDirection: 'column', gap: '16px', textAlign: 'center', maxWidth: '480px', margin: '0 auto' }}>
+        <span style={{ fontSize: '40px' }}>🖥️</span>
+        <h2 style={{ margin: 0 }}>{exam?.title}</h2>
+        <p style={{ color: '#94a3b8', lineHeight: 1.6 }}>
+          This exam runs in fullscreen. Once you start, switching tabs, minimizing the window,
+          or exiting fullscreen will count as a violation — after {MAX_VIOLATIONS} violations
+          your exam is auto-submitted. Copying the question or pasting code is also disabled.
+        </p>
+        <button onClick={handleStartExam} className="publish-btn btn-animated">🚀 Start Exam in Fullscreen</button>
+      </div>
+    );
+  }
 
   if (submitting && !result) {
     return (
@@ -277,7 +387,21 @@ const TakeExam = () => {
   const totalQuestions = questions.length;
 
   return (
-    <div className="exam-wrapper">
+    <div
+      className="exam-wrapper"
+      onPaste={handleBlockClipboard}
+      onContextMenu={handleBlockClipboard}
+    >
+      {violationNotice && (
+        <div className="alert-error" style={{ position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, maxWidth: '90vw', textAlign: 'center' }}>
+          ⚠️ {violationNotice}
+        </div>
+      )}
+      {copyBlockedNotice && (
+        <div className="alert-error" style={{ position: 'fixed', bottom: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}>
+          📋 Copy/paste is disabled during this exam.
+        </div>
+      )}
       <div className="exam-header">
         <div>
           <h2>{exam?.title}</h2>
@@ -295,8 +419,12 @@ const TakeExam = () => {
         ) : currentQuestion?.type === 'coding' ? (
           <div style={{ display: 'flex', width: '100%', height: '100%' }}>
             <div className="exam-left-panel">
-              <span className="exam-question-badge">QUESTION {currentIdx + 1} OF {totalQuestions} (CODING)</span>
-              <p style={{ color: '#e2e8f0', fontSize: '16px', lineHeight: 1.7, margin: 0 }}>{currentQuestion.codingProblemStatement || currentQuestion.text}</p>
+              <span className="exam-question-badge">QUESTION {currentIdx + 1} OF {totalQuestions} (CODING) — {currentQuestion.marks ?? 1} MARKS</span>
+              <p
+                style={{ color: '#e2e8f0', fontSize: '16px', lineHeight: 1.7, margin: 0, userSelect: 'none' }}
+                onCopy={handleBlockClipboard}
+                onCut={handleBlockClipboard}
+              >{currentQuestion.codingProblemStatement || currentQuestion.text}</p>
 
               {(currentQuestion.sampleInput || currentQuestion.sampleOutput) && (
                 <div className="sample-io-box">
@@ -335,9 +463,16 @@ const TakeExam = () => {
               <div className="run-panel">
                 <div className="run-panel-header">
                   <span className="exam-timer-label">▶️ TEST YOUR CODE</span>
-                  <button onClick={handleRunCode} disabled={running} className="run-btn btn-animated">
-                    {running ? 'Running…' : '▶ Run Code'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={handleRunCode} disabled={running} className="run-btn btn-animated">
+                      {running ? 'Running…' : '▶ Run Code'}
+                    </button>
+                    {(currentQuestion.testCases || []).length > 0 && (
+                      <button onClick={handleRunTestCases} disabled={runningTests} className="run-btn btn-animated">
+                        {runningTests ? 'Testing…' : `🧪 Run Test Cases (${currentQuestion.testCases.length})`}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <textarea
                   value={runStdin}
@@ -362,14 +497,39 @@ const TakeExam = () => {
                     )}
                   </div>
                 )}
+
+                {testRunResults && (
+                  <div className="run-output-box">
+                    {(() => {
+                      const passedCount = testRunResults.results.filter((r) => r.passed).length;
+                      const total = testRunResults.results.length;
+                      return (
+                        <div className={`run-status ${passedCount === total ? 'run-status-ok' : 'run-status-error'}`}>
+                          {passedCount} / {total} test cases passed
+                        </div>
+                      );
+                    })()}
+                    {testRunResults.apiFailed && (
+                      <div className="run-status run-status-error">Some test cases couldn't be checked — connection issue with the code runner.</div>
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                      {testRunResults.results.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '6px 8px', borderRadius: '6px', background: r.skipped ? 'rgba(148,163,184,0.15)' : r.passed ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }}>
+                          <span>Test Case {i + 1}</span>
+                          <span>{r.skipped ? '⚠️ Skipped' : r.passed ? '✔ Passed' : '✘ Failed'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         ) : (
           <div className="exam-mcq-wrapper">
             <div className="exam-mcq-card">
-              <span className="exam-question-badge">QUESTION {currentIdx + 1} OF {totalQuestions}</span>
-              <p className="exam-question-text">{currentQuestion?.text}</p>
+              <span className="exam-question-badge">QUESTION {currentIdx + 1} OF {totalQuestions} — {currentQuestion?.marks ?? 1} MARKS</span>
+              <p className="exam-question-text" style={{ userSelect: 'none' }} onCopy={handleBlockClipboard} onCut={handleBlockClipboard}>{currentQuestion?.text}</p>
               <div className="exam-options-list">
                 {['A', 'B', 'C', 'D'].map((opt) => {
                   const choiceString = currentQuestion?.[`option${opt}`];
