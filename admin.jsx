@@ -13,6 +13,7 @@ const emptyTestCase = () => ({ input: '', output: '' });
 const emptyQuestion = () => ({
   type: 'mcq',
   text: '',
+  marks: 1,
   optionA: '',
   optionB: '',
   optionC: '',
@@ -170,6 +171,10 @@ const AdminPanel = () => {
       return;
     }
     for (const q of questions) {
+      if (!q.marks || Number(q.marks) <= 0) {
+        setError(`"${q.text || 'A question'}" needs a marks value greater than 0.`);
+        return;
+      }
       if (q.type === 'coding') {
         const cases = q.testCases || [];
         if (cases.length === 0 || cases.every((tc) => !tc.input && !tc.output)) {
@@ -214,7 +219,7 @@ const AdminPanel = () => {
     setEndDate(exam.endDate ? exam.endDate.slice(0, 16) : '');
     setQuestions(
       exam.questions && exam.questions.length
-        ? exam.questions.map((q) => ({ testCases: [emptyTestCase()], sampleInput: '', sampleOutput: '', ...q }))
+        ? exam.questions.map((q) => ({ testCases: [emptyTestCase()], sampleInput: '', sampleOutput: '', marks: 1, ...q }))
         : [emptyQuestion()]
     );
     setMessage('');
@@ -441,6 +446,23 @@ const AdminPanel = () => {
                           <option value="mcq">Multiple Choice</option>
                           <option value="coding">Coding</option>
                         </select>
+                      </div>
+                      <div className="dropdown-row" style={{ marginTop: '8px' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text)', opacity: 0.7 }}>Marks:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={q.marks ?? 1}
+                          onChange={e => handleQuestionChange(idx, 'marks', e.target.value === '' ? '' : Number(e.target.value))}
+                          className="mini-input input-animated"
+                          style={{ width: '80px' }}
+                        />
+                        {q.type === 'coding' && (
+                          <span style={{ fontSize: '11px', color: 'var(--text)', opacity: 0.6 }}>
+                            (split across test cases — e.g. 3/4 passed = {((q.marks ?? 1) * 0.75).toFixed(2)} marks)
+                          </span>
+                        )}
                       </div>
                     </div>
 
