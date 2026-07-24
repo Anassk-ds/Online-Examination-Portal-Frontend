@@ -411,7 +411,7 @@ const TakeExam = () => {
             })}
           </div>
 
-          <button onClick={() => navigate('/dashboard')} className="publish-btn btn-animated" style={{ marginTop: '20px' }}>
+          <button onClick={() => navigate('/dashboard', { state: { tab: 'Results' } })} className="publish-btn btn-animated" style={{ marginTop: '20px' }}>
             Go to Dashboard →
           </button>
         </div>
